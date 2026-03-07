@@ -22,7 +22,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     <DateContext.Provider value={{ selectedDate, setSelectedDate }}>
       <div className="min-h-screen bg-gray-950 flex flex-col max-w-lg mx-auto">
         <TopBar title={title} />
-        <main className="flex-1 overflow-y-auto pb-24 px-4 pt-4">
+        <main
+          style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+          className="flex-1 overflow-y-auto px-4 pt-4"
+        >
           {children}
         </main>
         <BottomNav />

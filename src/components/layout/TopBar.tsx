@@ -17,7 +17,10 @@ export function TopBar({ title }: { title: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+    <header
+      style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+      className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-4 pb-3 flex items-center justify-between"
+    >
       <h1 className="text-lg font-bold text-lime-400 tracking-tight">{title}</h1>
 
       <div className="flex items-center gap-1">
