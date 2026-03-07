@@ -6,11 +6,12 @@ import { FoodSearchTab } from './FoodSearchTab';
 import { ManualFoodForm } from './ManualFoodForm';
 import { ServingAdjuster } from './ServingAdjuster';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
+import { MealTemplatesTab } from './MealTemplatesTab';
 import { useFoodStore } from '../../stores/useFoodStore';
 import type { FoodItem, MealType } from '../../types';
 import { guessMealFromTime } from '../../utils/dateUtils';
 
-const TABS = ['Presets', 'Search', 'Manual'] as const;
+const TABS = ['Presets', 'Search', 'Manual', 'Templates'] as const;
 type Tab = typeof TABS[number];
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'pre-workout', 'lunch', 'dinner', 'post-workout', 'snack'];
@@ -83,33 +84,35 @@ export function AddFoodModal({ open, onClose, date }: AddFoodModalProps) {
   return (
     <Modal open={open} onClose={handleClose} title="Log Food">
       <div className="flex flex-col">
-        {/* Meal selector */}
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {MEAL_TYPES.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMeal(m)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  meal === m
-                    ? 'bg-lime-400 text-gray-950'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
-              >
-                {MEAL_LABELS[m]}
-              </button>
-            ))}
+        {/* Meal selector — hidden on Templates tab */}
+        {tab !== 'Templates' && (
+          <div className="px-4 pt-3 pb-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+              {MEAL_TYPES.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMeal(m)}
+                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    meal === m
+                      ? 'bg-lime-400 text-gray-950'
+                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                  }`}
+                >
+                  {MEAL_LABELS[m]}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tab bar + scan button */}
         <div className="flex items-center border-b border-gray-800 px-4">
-          <div className="flex flex-1">
+          <div className="flex flex-1 overflow-x-auto">
             {TABS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                className={`shrink-0 flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
                   tab === t
                     ? 'border-lime-400 text-lime-400'
                     : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -119,13 +122,15 @@ export function AddFoodModal({ open, onClose, date }: AddFoodModalProps) {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => setShowScanner(true)}
-            className="ml-2 p-2 text-gray-500 hover:text-lime-400 transition-colors"
-            title="Scan barcode"
-          >
-            <ScanLine size={18} />
-          </button>
+          {tab !== 'Templates' && (
+            <button
+              onClick={() => setShowScanner(true)}
+              className="ml-2 p-2 text-gray-500 hover:text-lime-400 transition-colors shrink-0"
+              title="Scan barcode"
+            >
+              <ScanLine size={18} />
+            </button>
+          )}
         </div>
 
         {/* Tab content */}
@@ -133,6 +138,9 @@ export function AddFoodModal({ open, onClose, date }: AddFoodModalProps) {
           {tab === 'Presets' && <GymPresetsGrid onSelect={handleFoodSelect} />}
           {tab === 'Search' && <FoodSearchTab onSelect={handleFoodSelect} />}
           {tab === 'Manual' && <ManualFoodForm onAdd={handleManualAdd} />}
+          {tab === 'Templates' && (
+            <MealTemplatesTab date={date} currentMeal={meal} onApplied={onClose} />
+          )}
         </div>
       </div>
     </Modal>

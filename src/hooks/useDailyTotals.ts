@@ -16,9 +16,11 @@ export function useDailyTotals(date: string): Macros {
           protein: Math.round((acc.protein + scaled.protein) * 10) / 10,
           carbs: Math.round((acc.carbs + scaled.carbs) * 10) / 10,
           fat: Math.round((acc.fat + scaled.fat) * 10) / 10,
+          fiber: Math.round(((acc.fiber ?? 0) + (scaled.fiber ?? 0)) * 10) / 10,
+          sodium: Math.round((acc.sodium ?? 0) + (scaled.sodium ?? 0)),
         };
       },
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0 }
     );
   }, [foodLog, date]);
 }

@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Dumbbell, Scale } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { useSelectedDate } from '../hooks/useSelectedDate';
 import { useDailyTotals } from '../hooks/useDailyTotals';
 import { useGoalsStore } from '../stores/useGoalsStore';
@@ -13,6 +14,17 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { Card } from '../components/ui/Card';
 import { scaleMacros } from '../utils/macroCalc';
 import { isToday } from '../utils/dateUtils';
+
+type TrendRange = '7D' | '14D' | '30D';
+type TrendMetric = 'Calories' | 'Protein' | 'Carbs' | 'Fat';
+
+const TREND_DAYS: Record<TrendRange, number> = { '7D': 7, '14D': 14, '30D': 30 };
+const METRIC_COLORS: Record<TrendMetric, string> = {
+  Calories: '#a3e635',
+  Protein: '#60a5fa',
+  Carbs: '#facc15',
+  Fat: '#fb923c',
+};
 
 export function DashboardPage() {
   const { selectedDate } = useSelectedDate();
@@ -41,6 +53,46 @@ export function DashboardPage() {
     carbs: Math.round((goals.carbs - totals.carbs) * 10) / 10,
     fat: Math.round((goals.fat - totals.fat) * 10) / 10,
   };
+
+  const [trendRange, setTrendRange] = useState<TrendRange>('7D');
+  const [trendMetric, setTrendMetric] = useState<TrendMetric>('Calories');
+
+  const trendData = useMemo(() => {
+    const days = TREND_DAYS[trendRange];
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const date = d.toISOString().split('T')[0];
+      const dayEntries = foodLog.filter((e) => e.date === date);
+      const totalsForDay = dayEntries.reduce(
+        (acc, entry) => {
+          const s = scaleMacros(entry.foodItem.macrosPerServing, entry.servings);
+          return {
+            calories: acc.calories + s.calories,
+            protein: Math.round((acc.protein + s.protein) * 10) / 10,
+            carbs: Math.round((acc.carbs + s.carbs) * 10) / 10,
+            fat: Math.round((acc.fat + s.fat) * 10) / 10,
+          };
+        },
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+      result.push({
+        label: d.toLocaleDateString('en', { month: 'short', day: 'numeric' }),
+        value: trendMetric === 'Calories' ? totalsForDay.calories
+          : trendMetric === 'Protein' ? totalsForDay.protein
+          : trendMetric === 'Carbs' ? totalsForDay.carbs
+          : totalsForDay.fat,
+        isToday: date === new Date().toISOString().split('T')[0],
+      });
+    }
+    return result;
+  }, [foodLog, trendRange, trendMetric]);
+
+  const trendGoal = trendMetric === 'Calories' ? goals.calories
+    : trendMetric === 'Protein' ? goals.protein
+    : trendMetric === 'Carbs' ? goals.carbs
+    : goals.fat;
 
   const goalBadgeColor: Record<string, string> = {
     bulk: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
@@ -110,6 +162,67 @@ export function DashboardPage() {
           sublabel={`${totals.fat}g / ${goals.fat}g`}
           height="h-2.5"
         />
+      </Card>
+
+      {/* Trends chart */}
+      <Card className="p-5 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-300">Trends</h2>
+          <div className="flex gap-1">
+            {(['7D', '14D', '30D'] as TrendRange[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setTrendRange(r)}
+                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                  trendRange === r ? 'bg-lime-400/20 text-lime-400' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-1 flex-wrap">
+          {(['Calories', 'Protein', 'Carbs', 'Fat'] as TrendMetric[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => setTrendMetric(m)}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+                trendMetric === m
+                  ? 'text-gray-900 font-semibold'
+                  : 'text-gray-500 hover:text-gray-300'
+              }`}
+              style={trendMetric === m ? { backgroundColor: METRIC_COLORS[m] } : {}}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <ResponsiveContainer width="100%" height={140}>
+          <BarChart data={trendData} barSize={trendRange === '30D' ? 6 : trendRange === '14D' ? 10 : 18} margin={{ top: 4, right: 0, left: -28, bottom: 0 }}>
+            <XAxis
+              dataKey="label"
+              tick={{ fill: '#4b5563', fontSize: 10 }}
+              tickLine={false}
+              axisLine={false}
+              interval={trendRange === '30D' ? 6 : trendRange === '14D' ? 3 : 0}
+            />
+            <YAxis tick={{ fill: '#4b5563', fontSize: 10 }} tickLine={false} axisLine={false} />
+            <Tooltip
+              contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
+              labelStyle={{ color: '#9ca3af', fontSize: 11 }}
+              itemStyle={{ color: METRIC_COLORS[trendMetric], fontSize: 12 }}
+              formatter={(v) => [`${v} ${trendMetric === 'Calories' ? 'kcal' : 'g'}`, trendMetric]}
+            />
+            <ReferenceLine y={trendGoal} stroke="#6b7280" strokeDasharray="3 3" />
+            <Bar dataKey="value" radius={[3, 3, 0, 0]}>
+              {trendData.map((entry, i) => (
+                <Cell key={i} fill={entry.isToday ? METRIC_COLORS[trendMetric] : `${METRIC_COLORS[trendMetric]}66`} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <p className="text-xs text-gray-600 text-center">Dashed line = goal · Bright bar = today</p>
       </Card>
 
       {/* Water */}

@@ -33,6 +33,13 @@ export interface FoodLogEntry {
   loggedAt: string;
 }
 
+export interface MealTemplate {
+  id: string;
+  name: string;
+  items: { foodItem: FoodItem; servings: number; meal: MealType }[];
+  createdAt: string;
+}
+
 // ─── Open Food Facts ─────────────────────────────────────────────────────────
 
 export interface OFFNutriments {

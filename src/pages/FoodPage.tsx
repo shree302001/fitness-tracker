@@ -52,6 +52,22 @@ export function FoodPage() {
             </div>
           ))}
         </div>
+        {((totals.fiber ?? 0) > 0 || (totals.sodium ?? 0) > 0) && (
+          <div className="flex gap-4 pt-1 border-t border-gray-800">
+            {(totals.fiber ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="text-green-400 font-medium">{totals.fiber}g</span>
+                <span>fiber</span>
+              </div>
+            )}
+            {(totals.sodium ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="text-purple-400 font-medium">{totals.sodium}mg</span>
+                <span>sodium</span>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Copy yesterday */}

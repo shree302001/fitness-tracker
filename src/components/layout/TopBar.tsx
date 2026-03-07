@@ -1,9 +1,20 @@
+import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSelectedDate } from '../../hooks/useSelectedDate';
 import { addDays, subDays, isToday, formatDisplayDate } from '../../utils/dateUtils';
 
 export function TopBar({ title }: { title: string }) {
   const { selectedDate, setSelectedDate } = useSelectedDate();
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  function openDatePicker() {
+    const input = dateInputRef.current;
+    if (!input) return;
+    input.showPicker?.();
+    input.click();
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-gray-950/95 backdrop-blur border-b border-gray-800 px-4 py-3 flex items-center justify-between">
@@ -17,16 +28,27 @@ export function TopBar({ title }: { title: string }) {
           <ChevronLeft size={18} />
         </button>
 
-        <button
-          onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
-          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-            isToday(selectedDate)
-              ? 'text-lime-400 bg-lime-400/10'
-              : 'text-gray-300 hover:bg-gray-800'
-          }`}
-        >
-          {isToday(selectedDate) ? 'Today' : formatDisplayDate(selectedDate)}
-        </button>
+        <div className="relative">
+          <button
+            onClick={openDatePicker}
+            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+              isToday(selectedDate)
+                ? 'text-lime-400 bg-lime-400/10'
+                : 'text-gray-300 hover:bg-gray-800'
+            }`}
+          >
+            {isToday(selectedDate) ? 'Today' : formatDisplayDate(selectedDate)}
+          </button>
+          <input
+            ref={dateInputRef}
+            type="date"
+            max={today}
+            value={selectedDate}
+            onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            tabIndex={-1}
+          />
+        </div>
 
         <button
           onClick={() => setSelectedDate(addDays(selectedDate, 1))}

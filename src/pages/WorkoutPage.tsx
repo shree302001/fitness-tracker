@@ -5,6 +5,7 @@ import { useSelectedDate } from '../hooks/useSelectedDate';
 import { Button } from '../components/ui/Button';
 import { WorkoutHistoryCard } from '../components/workout/WorkoutHistoryCard';
 import { WorkoutFormModal } from '../components/workout/WorkoutFormModal';
+import { WorkoutVolumeChart } from '../components/workout/WorkoutVolumeChart';
 import type { WorkoutSession } from '../types';
 
 export function WorkoutPage() {
@@ -43,6 +44,8 @@ export function WorkoutPage() {
       <Button size="lg" className="w-full gap-2" onClick={openAdd}>
         <Plus size={18} /> Log Workout
       </Button>
+
+      <WorkoutVolumeChart />
 
       {sessions.length > 0 ? (
         <>

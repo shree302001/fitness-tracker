@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import type { FoodLogEntry, FoodItem, MealType } from '../types';
+import type { FoodLogEntry, FoodItem, MealType, MealTemplate } from '../types';
 
 interface FoodState {
   foodLog: FoodLogEntry[];
   customFoodItems: FoodItem[];
+  mealTemplates: MealTemplate[];
   logFood: (foodItem: FoodItem, servings: number, date: string, meal: MealType) => void;
   removeFoodEntry: (entryId: string) => void;
   updateServings: (entryId: string, servings: number) => void;
@@ -14,6 +15,9 @@ interface FoodState {
   addCustomFood: (food: FoodItem) => void;
   removeCustomFood: (foodId: string) => void;
   getEntriesForDate: (date: string) => FoodLogEntry[];
+  saveMealAsTemplate: (name: string, entries: FoodLogEntry[]) => void;
+  applyTemplate: (templateId: string, date: string) => void;
+  deleteTemplate: (templateId: string) => void;
 }
 
 export const useFoodStore = create<FoodState>()(
@@ -21,6 +25,7 @@ export const useFoodStore = create<FoodState>()(
     (set, get) => ({
       foodLog: [],
       customFoodItems: [],
+      mealTemplates: [],
 
       logFood: (foodItem, servings, date, meal) =>
         set((s) => ({
@@ -75,6 +80,38 @@ export const useFoodStore = create<FoodState>()(
 
       getEntriesForDate: (date) =>
         get().foodLog.filter((e) => e.date === date),
+
+      saveMealAsTemplate: (name, entries) =>
+        set((s) => ({
+          mealTemplates: [
+            ...s.mealTemplates,
+            {
+              id: uuidv4(),
+              name,
+              items: entries.map((e) => ({ foodItem: e.foodItem, servings: e.servings, meal: e.meal })),
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        })),
+
+      applyTemplate: (templateId, date) => {
+        const template = get().mealTemplates.find((t) => t.id === templateId);
+        if (!template) return;
+        const newEntries: FoodLogEntry[] = template.items.map((item) => ({
+          id: uuidv4(),
+          date,
+          foodItem: item.foodItem,
+          servings: item.servings,
+          meal: item.meal,
+          loggedAt: new Date().toISOString(),
+        }));
+        set((s) => ({ foodLog: [...s.foodLog, ...newEntries] }));
+      },
+
+      deleteTemplate: (templateId) =>
+        set((s) => ({
+          mealTemplates: s.mealTemplates.filter((t) => t.id !== templateId),
+        })),
     }),
     { name: 'fitness-food' }
   )

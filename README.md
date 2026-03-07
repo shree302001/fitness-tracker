@@ -4,11 +4,12 @@ A personal fitness tracking app built with React, TypeScript, and Capacitor. Tra
 
 ## Features
 
-- **Dashboard** — Daily overview of calories, water intake, workouts, and body weight
-- **Food Tracking** — Log meals and snacks with barcode scanning support
-- **Workout Tracking** — Record exercises, sets, reps, and weights
+- **Dashboard** — Daily overview of calories, macros, water, and workouts; 7/14/30-day calorie and macro trend charts
+- **Food Tracking** — Log meals with barcode scanning, manual entry, or food search; fiber and sodium display; meal templates for one-tap re-logging
+- **Workout Tracking** — Record exercises, sets, reps, and weights; personal record detection; session volume trend chart
 - **Body Weight** — Track weight over time with trend charts
-- **Goals** — Set and monitor fitness goals
+- **Goals** — Set and monitor calorie, macro, and body composition goals
+- **Date Navigation** — Tap the date in the header to jump to any past date via native date picker
 
 ## Tech Stack
 
