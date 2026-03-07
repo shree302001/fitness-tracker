@@ -111,7 +111,7 @@ export function ExerciseProgressModal({ exerciseId, exerciseName, onClose }: Exe
                 contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8 }}
                 labelStyle={{ color: '#9ca3af', fontSize: 11 }}
                 itemStyle={{ color: '#a3e635', fontSize: 12 }}
-                formatter={(v: number) => [`${v} ${metric === 'weight' ? 'kg' : 'kg vol'}`, '']}
+                formatter={(v) => [`${v} ${metric === 'weight' ? 'kg' : 'kg vol'}`, '']}
               />
               <Line
                 type="monotone"

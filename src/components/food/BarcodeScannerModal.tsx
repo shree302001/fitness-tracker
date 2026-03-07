@@ -14,14 +14,13 @@ interface BarcodeScannerModalProps {
 
 export function BarcodeScannerModal({ onSelect, onClose }: BarcodeScannerModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<{ stop: () => void } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [looking, setLooking] = useState(false);
   const [scanned, setScanned] = useState(false);
 
   useEffect(() => {
     const reader = new BrowserMultiFormatReader();
-    readerRef.current = reader;
 
     reader
       .decodeFromVideoDevice(undefined, videoRef.current!, (result, err) => {
@@ -34,12 +33,13 @@ export function BarcodeScannerModal({ onSelect, onClose }: BarcodeScannerModalPr
           // Ignore normal "no barcode found" errors during scanning
         }
       })
+      .then((controls) => { controlsRef.current = controls; })
       .catch(() => {
         setError('Camera not available. Allow camera access and try again.');
       });
 
     return () => {
-      readerRef.current?.reset();
+      controlsRef.current?.stop();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -56,10 +56,9 @@ export function BarcodeScannerModal({ onSelect, onClose }: BarcodeScannerModalPr
       setError(`Product not found in database (barcode: ${barcode})`);
       setLooking(false);
       setScanned(false);
-      readerRef.current?.reset();
+      controlsRef.current?.stop();
       // Restart scanning
       const reader = new BrowserMultiFormatReader();
-      readerRef.current = reader;
       reader
         .decodeFromVideoDevice(undefined, videoRef.current!, (result) => {
           if (result && !scanned) {
@@ -68,6 +67,7 @@ export function BarcodeScannerModal({ onSelect, onClose }: BarcodeScannerModalPr
             lookupBarcode(result.getText());
           }
         })
+        .then((controls) => { controlsRef.current = controls; })
         .catch(() => {});
     }
   }
