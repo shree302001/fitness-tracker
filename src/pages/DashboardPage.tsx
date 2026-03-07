@@ -54,6 +54,27 @@ export function DashboardPage() {
     fat: Math.round((goals.fat - totals.fat) * 10) / 10,
   };
 
+  const weeklySummary = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    let totalCals = 0;
+    let daysLogged = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const date = d.toISOString().split('T')[0];
+      const dayEntries = foodLog.filter((e) => e.date === date);
+      if (dayEntries.length > 0) {
+        totalCals += dayEntries.reduce((sum, e) => sum + scaleMacros(e.foodItem.macrosPerServing, e.servings).calories, 0);
+        daysLogged++;
+      }
+    }
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 6);
+    const cutoffDate = cutoff.toISOString().split('T')[0];
+    const weekWorkouts = allSessions.filter((s) => s.date >= cutoffDate && s.date <= today).length;
+    return { avgCals: daysLogged > 0 ? Math.round(totalCals / daysLogged) : 0, daysLogged, weekWorkouts };
+  }, [foodLog, allSessions]);
+
   const [trendRange, setTrendRange] = useState<TrendRange>('7D');
   const [trendMetric, setTrendMetric] = useState<TrendMetric>('Calories');
 
@@ -103,7 +124,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Goal badge */}
+      {/* Goal badge + weekly summary */}
       <div className="flex items-center justify-between">
         <span className={`text-xs font-medium px-3 py-1 rounded-full border ${goalBadgeColor[goalType] ?? goalBadgeColor.custom}`}>
           {goalType.charAt(0).toUpperCase() + goalType.slice(1)}
@@ -115,6 +136,24 @@ export function DashboardPage() {
           </span>
         )}
       </div>
+
+      {/* Weekly summary */}
+      {(weeklySummary.daysLogged > 0 || weeklySummary.weekWorkouts > 0) && (
+        <div className="flex items-center gap-2 text-xs text-gray-500 px-1">
+          <span className="text-gray-600">This week:</span>
+          {weeklySummary.daysLogged > 0 && (
+            <span className="text-gray-400">
+              avg <span className="text-lime-400 font-medium">{weeklySummary.avgCals}</span> kcal/day
+            </span>
+          )}
+          {weeklySummary.daysLogged > 0 && weeklySummary.weekWorkouts > 0 && <span className="text-gray-700">·</span>}
+          {weeklySummary.weekWorkouts > 0 && (
+            <span className="text-gray-400">
+              <span className="text-lime-400 font-medium">{weeklySummary.weekWorkouts}</span> workout{weeklySummary.weekWorkouts !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Calorie ring */}
       <Card className="p-5 flex flex-col items-center gap-4">

@@ -7,11 +7,12 @@ import { ManualFoodForm } from './ManualFoodForm';
 import { ServingAdjuster } from './ServingAdjuster';
 import { BarcodeScannerModal } from './BarcodeScannerModal';
 import { MealTemplatesTab } from './MealTemplatesTab';
+import { RecentFoodsTab } from './RecentFoodsTab';
 import { useFoodStore } from '../../stores/useFoodStore';
 import type { FoodItem, MealType } from '../../types';
 import { guessMealFromTime } from '../../utils/dateUtils';
 
-const TABS = ['Presets', 'Search', 'Manual', 'Templates'] as const;
+const TABS = ['Recent', 'Presets', 'Search', 'Manual', 'Templates'] as const;
 type Tab = typeof TABS[number];
 
 const MEAL_TYPES: MealType[] = ['breakfast', 'pre-workout', 'lunch', 'dinner', 'post-workout', 'snack'];
@@ -31,7 +32,7 @@ interface AddFoodModalProps {
 }
 
 export function AddFoodModal({ open, onClose, date }: AddFoodModalProps) {
-  const [tab, setTab] = useState<Tab>('Presets');
+  const [tab, setTab] = useState<Tab>('Recent');
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [meal, setMeal] = useState<MealType>(guessMealFromTime());
   const [showScanner, setShowScanner] = useState(false);
@@ -122,7 +123,7 @@ export function AddFoodModal({ open, onClose, date }: AddFoodModalProps) {
               </button>
             ))}
           </div>
-          {tab !== 'Templates' && (
+          {tab !== 'Templates' && tab !== 'Recent' && (
             <button
               onClick={() => setShowScanner(true)}
               className="ml-2 p-2 text-gray-500 hover:text-lime-400 transition-colors shrink-0"
@@ -135,6 +136,7 @@ export function AddFoodModal({ open, onClose, date }: AddFoodModalProps) {
 
         {/* Tab content */}
         <div className="overflow-y-auto" style={{ maxHeight: '55vh' }}>
+          {tab === 'Recent' && <RecentFoodsTab onSelect={handleFoodSelect} />}
           {tab === 'Presets' && <GymPresetsGrid onSelect={handleFoodSelect} />}
           {tab === 'Search' && <FoodSearchTab onSelect={handleFoodSelect} />}
           {tab === 'Manual' && <ManualFoodForm onAdd={handleManualAdd} />}

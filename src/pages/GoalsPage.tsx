@@ -535,7 +535,7 @@ export function GoalsPage() {
               URL.revokeObjectURL(url);
             }}
           >
-            Export
+            Export JSON
           </Button>
           <Button
             variant="secondary"
@@ -543,6 +543,66 @@ export function GoalsPage() {
             onClick={() => importRef.current?.click()}
           >
             Import
+          </Button>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => {
+              const food = JSON.parse(localStorage.getItem('fitness-food') ?? '{}');
+              const rows = [['Date', 'Meal', 'Food', 'Brand', 'Serving', 'Servings', 'Calories', 'Protein(g)', 'Carbs(g)', 'Fat(g)', 'Fiber(g)', 'Sodium(mg)']];
+              for (const entry of (food.state?.foodLog ?? [])) {
+                const m = entry.foodItem.macrosPerServing;
+                const s = entry.servings;
+                rows.push([
+                  entry.date, entry.meal, entry.foodItem.name, entry.foodItem.brand ?? '',
+                  `${entry.foodItem.servingSize}${entry.foodItem.servingLabel}`, s,
+                  Math.round(m.calories * s), Math.round(m.protein * s * 10) / 10,
+                  Math.round(m.carbs * s * 10) / 10, Math.round(m.fat * s * 10) / 10,
+                  Math.round((m.fiber ?? 0) * s * 10) / 10, Math.round((m.sodium ?? 0) * s),
+                ]);
+              }
+              const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `food-log-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Food CSV
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => {
+              const workout = JSON.parse(localStorage.getItem('fitness-workout') ?? '{}');
+              const rows = [['Date', 'Session', 'Exercise', 'Set', 'Weight(kg)', 'Reps', 'Volume(kg)', 'Warmup', 'PR']];
+              for (const session of (workout.state?.sessions ?? [])) {
+                for (const ex of session.exercises) {
+                  ex.sets.forEach((set: { weight: number; reps: number; isWarmup: boolean; isPR: boolean }, i: number) => {
+                    rows.push([
+                      session.date, session.name, ex.exercise.name, i + 1,
+                      set.weight, set.reps, Math.round(set.weight * set.reps),
+                      set.isWarmup ? 'Yes' : 'No', set.isPR ? 'Yes' : 'No',
+                    ]);
+                  });
+                }
+              }
+              const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `workout-log-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            Workout CSV
           </Button>
         </div>
         <input

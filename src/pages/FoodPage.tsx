@@ -8,7 +8,6 @@ import { FoodLogList } from '../components/food/FoodLogList';
 import { AddFoodModal } from '../components/food/AddFoodModal';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
 
 function getYesterday(dateStr: string): string {
   const d = new Date(dateStr);
@@ -84,16 +83,16 @@ export function FoodPage() {
       {/* Food log */}
       <FoodLogList entries={entries} date={selectedDate} />
 
-      {/* Add food button */}
-      <Button
+      <AddFoodModal open={showModal} onClose={() => setShowModal(false)} date={selectedDate} />
+
+      {/* Floating Log Food button */}
+      <button
         onClick={() => setShowModal(true)}
-        className="w-full gap-2"
-        size="lg"
+        style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
+        className="fixed right-4 z-30 flex items-center gap-2 px-4 h-12 bg-lime-400 text-gray-950 font-semibold text-sm rounded-full shadow-lg hover:bg-lime-300 active:scale-95 transition-all"
       >
         <Plus size={18} /> Log Food
-      </Button>
-
-      <AddFoodModal open={showModal} onClose={() => setShowModal(false)} date={selectedDate} />
+      </button>
     </div>
   );
 }
