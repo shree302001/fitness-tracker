@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Dumbbell, Scale } from 'lucide-react';
+import { Plus, Dumbbell, Scale, Footprints, Moon } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { useSelectedDate } from '../hooks/useSelectedDate';
 import { useDailyTotals } from '../hooks/useDailyTotals';
@@ -14,6 +14,8 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { Card } from '../components/ui/Card';
 import { scaleMacros } from '../utils/macroCalc';
 import { isToday } from '../utils/dateUtils';
+import { useHealthConnect } from '../hooks/useHealthConnect';
+import { useActivityStore } from '../stores/useActivityStore';
 
 type TrendRange = '7D' | '14D' | '30D';
 type TrendMetric = 'Calories' | 'Protein' | 'Carbs' | 'Fat';
@@ -74,6 +76,10 @@ export function DashboardPage() {
     const weekWorkouts = allSessions.filter((s) => s.date >= cutoffDate && s.date <= today).length;
     return { avgCals: daysLogged > 0 ? Math.round(totalCals / daysLogged) : 0, daysLogged, weekWorkouts };
   }, [foodLog, allSessions]);
+
+  const hc = useHealthConnect();
+  const stepGoal = useActivityStore((s) => s.stepGoal);
+  const todaySleep = useActivityStore((s) => s.sleepLog.find((e) => e.date === selectedDate));
 
   const [trendRange, setTrendRange] = useState<TrendRange>('7D');
   const [trendMetric, setTrendMetric] = useState<TrendMetric>('Calories');
@@ -154,6 +160,49 @@ export function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* Steps + Sleep widget */}
+      <Link to="/activity" className="grid grid-cols-2 gap-3 no-underline">
+        {/* Steps */}
+        <Card className="p-3 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Footprints size={12} className="text-lime-400" />
+            <span>Steps</span>
+          </div>
+          {hc.permissionsGranted && hc.steps !== null ? (
+            <>
+              <div className="text-lg font-bold text-lime-400">{hc.steps.toLocaleString()}</div>
+              <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-lime-400 rounded-full"
+                  style={{ width: `${Math.min((hc.steps / stepGoal) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="text-xs text-gray-600">of {stepGoal.toLocaleString()}</div>
+            </>
+          ) : (
+            <div className="text-xs text-gray-600 pt-1">Tap to connect →</div>
+          )}
+        </Card>
+
+        {/* Sleep */}
+        <Card className="p-3 flex flex-col gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Moon size={12} className="text-blue-400" />
+            <span>Sleep</span>
+          </div>
+          {todaySleep ? (
+            <>
+              <div className="text-lg font-bold text-blue-400">
+                {Math.floor(todaySleep.durationMinutes / 60)}h {todaySleep.durationMinutes % 60}m
+              </div>
+              <div className="text-xs text-gray-600">{todaySleep.bedtime} → {todaySleep.wakeTime}</div>
+            </>
+          ) : (
+            <div className="text-xs text-gray-600 pt-1">Tap to log →</div>
+          )}
+        </Card>
+      </Link>
 
       {/* Calorie ring */}
       <Card className="p-5 flex flex-col items-center gap-4">

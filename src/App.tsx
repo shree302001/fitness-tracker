@@ -6,6 +6,7 @@ import { FoodPage } from './pages/FoodPage';
 import { WorkoutPage } from './pages/WorkoutPage';
 import { BodyWeightPage } from './pages/BodyWeightPage';
 import { GoalsPage } from './pages/GoalsPage';
+import { ActivityPage } from './pages/ActivityPage';
 
 async function requestAppPermissions() {
   // Camera — request by briefly opening a stream then closing it
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/food" element={<FoodPage />} />
           <Route path="/workout" element={<WorkoutPage />} />
+          <Route path="/activity" element={<ActivityPage />} />
           <Route path="/bodyweight" element={<BodyWeightPage />} />
           <Route path="/goals" element={<GoalsPage />} />
         </Routes>

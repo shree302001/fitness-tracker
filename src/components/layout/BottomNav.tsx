@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Utensils, Dumbbell, TrendingUp, Target } from 'lucide-react';
+import { Home, Utensils, Dumbbell, TrendingUp, Target, Activity } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/', icon: Home, label: 'Home' },
   { to: '/food', icon: Utensils, label: 'Food' },
-  { to: '/workout', icon: Dumbbell, label: 'Workout' },
+  { to: '/workout', icon: Dumbbell, label: 'Train' },
+  { to: '/activity', icon: Activity, label: 'Activity' },
   { to: '/bodyweight', icon: TrendingUp, label: 'Weight' },
   { to: '/goals', icon: Target, label: 'Goals' },
 ];
@@ -22,14 +23,14 @@ export function BottomNav() {
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 py-3 px-4 text-xs font-medium transition-colors ${
+              `flex flex-col items-center gap-0.5 py-3 px-2 text-xs font-medium transition-colors ${
                 isActive ? 'text-lime-400' : 'text-gray-500 hover:text-gray-300'
               }`
             }
           >
             {({ isActive }) => (
               <>
-                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
                 <span>{label}</span>
               </>
             )}

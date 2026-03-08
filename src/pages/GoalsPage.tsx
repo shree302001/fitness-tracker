@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useGoalsStore } from '../stores/useGoalsStore';
 import { useBodyWeightStore } from '../stores/useBodyWeightStore';
+import { useFoodStore } from '../stores/useFoodStore';
 import { estimateTDEE, type ActivityLevel } from '../utils/macroCalc';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -32,7 +33,9 @@ export function GoalsPage() {
   const setTDEE = useGoalsStore((s) => s.setTDEE);
   const setWaterGoal = useGoalsStore((s) => s.setWaterGoal);
   const updateSettings = useGoalsStore((s) => s.updateSettings);
-  const latestWeight = useBodyWeightStore((s) => s.entries[s.entries.length - 1]);
+  const allWeightEntries = useBodyWeightStore((s) => s.entries);
+  const latestWeight = allWeightEntries[allWeightEntries.length - 1];
+  const foodLog = useFoodStore((s) => s.foodLog);
   const importRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<'idle' | 'ok' | 'err'>('idle');
 
@@ -40,6 +43,81 @@ export function GoalsPage() {
   const [goalType, setGoalType] = useState<GoalType>(settings.goalType);
   const [targetBfPct, setTargetBfPct] = useState<string>(settings.targetBfGoal ?? '');
   const [pace, setPace] = useState<'slow' | 'moderate' | 'fast'>(settings.bfPace ?? 'moderate');
+
+  const goalProjection = useMemo(() => {
+    const currentBf = settings.bodyFatPct;
+    const targetBf = parseFloat(targetBfPct);
+    const tdee = settings.tdee;
+    const currentWeight = latestWeight?.weight;
+    if (currentBf == null || !targetBf || targetBf <= 0 || targetBf >= 100 || !currentWeight || !tdee) return null;
+
+    const leanMass = currentWeight * (1 - currentBf / 100);
+    const targetWeightKg = Math.round((leanMass / (1 - targetBf / 100)) * 10) / 10;
+    const weightDelta = currentWeight - targetWeightKg;
+    if (Math.abs(weightDelta) < 0.2) return null;
+    const isCut = weightDelta > 0;
+
+    function toDate(weeks: number) {
+      const d = new Date();
+      d.setDate(d.getDate() + Math.round(weeks * 7));
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // Method 1: from calorie target set by user
+    let fromGoal: { rate: number; weeks: number; date: string } | null = null;
+    if (goals.calories > 0) {
+      const rate = ((tdee - goals.calories) * 7) / 7700; // kg/week, positive = losing
+      if (Math.abs(rate) > 0.01 && (isCut ? rate > 0 : rate < 0)) {
+        const weeks = Math.abs(weightDelta) / Math.abs(rate);
+        fromGoal = { rate, weeks, date: toDate(weeks) };
+      }
+    }
+
+    // Method 2: from average actual intake over last 14 days
+    let fromLog: { avgCals: number; rate: number; weeks: number; date: string } | null = null;
+    const today = new Date().toISOString().slice(0, 10);
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 13);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const recentLog = foodLog.filter((e) => e.date >= cutoffStr && e.date <= today);
+    if (recentLog.length > 0) {
+      const byDate = recentLog.reduce<Record<string, number>>((acc, e) => {
+        acc[e.date] = (acc[e.date] || 0) + e.foodItem.macrosPerServing.calories * e.servings;
+        return acc;
+      }, {});
+      const avgCals = Math.round(Object.values(byDate).reduce((a, b) => a + b, 0) / Object.keys(byDate).length);
+      const rate = ((tdee - avgCals) * 7) / 7700;
+      if (Math.abs(rate) > 0.01 && (isCut ? rate > 0 : rate < 0)) {
+        const weeks = Math.abs(weightDelta) / Math.abs(rate);
+        fromLog = { avgCals, rate, weeks, date: toDate(weeks) };
+      } else {
+        fromLog = { avgCals, rate, weeks: Infinity, date: '' };
+      }
+    }
+
+    // Method 3: from actual weight trend (linear regression, last 30 entries)
+    let fromTrend: { rate: number; weeks: number; date: string } | null = null;
+    const recent = allWeightEntries.slice(-30);
+    if (recent.length >= 4) {
+      const t0 = new Date(recent[0].date).getTime();
+      const xs = recent.map((e) => (new Date(e.date).getTime() - t0) / 86400000);
+      const ys = recent.map((e) => e.weight);
+      const n = xs.length;
+      const sx = xs.reduce((a, b) => a + b, 0);
+      const sy = ys.reduce((a, b) => a + b, 0);
+      const sxy = xs.reduce((a, b, i) => a + b * ys[i], 0);
+      const sx2 = xs.reduce((a, b) => a + b * b, 0);
+      const slope = (n * sxy - sx * sy) / (n * sx2 - sx * sx); // kg/day
+      const rate = slope * 7; // kg/week
+      if (Math.abs(rate) > 0.01 && (isCut ? rate < 0 : rate > 0)) {
+        const weeks = Math.abs(weightDelta) / Math.abs(rate);
+        fromTrend = { rate, weeks, date: toDate(weeks) };
+      } else {
+        fromTrend = { rate, weeks: Infinity, date: '' };
+      }
+    }
+
+    return { isCut, targetWeightKg, weightDelta: Math.abs(weightDelta), fromGoal, fromLog, fromTrend };
+  }, [settings.bodyFatPct, settings.tdee, targetBfPct, goals.calories, latestWeight, allWeightEntries, foodLog]);
 
   // TDEE calculator
   const [tdeeForm, setTdeeForm] = useState({
@@ -285,7 +363,11 @@ export function GoalsPage() {
 
                 <button
                   onClick={() => {
-                    setGoals((g) => ({ ...g, calories: suggestedCals }));
+                    const w = parseFloat(tdeeForm.weight) || (currentWeight ?? 75);
+                    const protein = Math.round(w * 2.2);
+                    const fat = Math.round((suggestedCals * 0.25) / 9);
+                    const carbs = Math.round((suggestedCals - protein * 4 - fat * 9) / 4);
+                    setGoals({ calories: suggestedCals, protein, carbs, fat });
                     updateGoalType(isCut ? 'cut' : 'bulk');
                     setGoalType(isCut ? 'cut' : 'bulk');
                   }}
@@ -295,6 +377,80 @@ export function GoalsPage() {
                 </button>
               </div>
             )}
+          </Card>
+        );
+      })()}
+
+      {/* Goal Projection */}
+      {goalProjection && (() => {
+        const { isCut, targetWeightKg, weightDelta, fromGoal, fromLog, fromTrend } = goalProjection;
+
+        function ProjectionRow({ label, sub, rate, weeks, date, noData }: {
+          label: string; sub: string; rate: number | null; weeks: number; date: string; noData?: boolean;
+        }) {
+          const wrongDir = rate !== null && (isCut ? rate <= 0 : rate >= 0);
+          const noProgress = weeks === Infinity || wrongDir || noData;
+          return (
+            <div className="bg-gray-800 rounded-xl p-3 flex flex-col gap-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="text-xs font-medium text-gray-300">{label}</div>
+                  <div className="text-xs text-gray-500">{sub}</div>
+                </div>
+                {!noProgress && (
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-lime-400">{date}</div>
+                    <div className="text-xs text-gray-500">{Math.round(weeks)}w away</div>
+                  </div>
+                )}
+                {noProgress && (
+                  <div className="text-xs text-yellow-500 text-right max-w-[120px]">
+                    {noData ? 'No data yet' : wrongDir ? `Going wrong direction` : 'On track — no change needed'}
+                  </div>
+                )}
+              </div>
+              {rate !== null && !wrongDir && (
+                <div className="text-xs text-gray-600">
+                  {Math.abs(rate).toFixed(2)} kg/week {isCut ? 'loss' : 'gain'}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <Card className="p-4 flex flex-col gap-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-sm font-semibold text-gray-300">Goal Projection</h2>
+              <span className="text-xs text-gray-500">Target: {targetWeightKg} kg ({isCut ? '-' : '+'}{weightDelta} kg)</span>
+            </div>
+
+            <ProjectionRow
+              label="From calorie target"
+              sub={`${goals.calories} kcal/day vs ${settings.tdee} TDEE`}
+              rate={fromGoal?.rate ?? null}
+              weeks={fromGoal?.weeks ?? Infinity}
+              date={fromGoal?.date ?? ''}
+              noData={!fromGoal && goals.calories === 0}
+            />
+
+            <ProjectionRow
+              label="From actual intake"
+              sub={fromLog ? `Avg ${fromLog.avgCals} kcal/day (last 14 days)` : 'No food logged yet'}
+              rate={fromLog?.rate ?? null}
+              weeks={fromLog?.weeks ?? Infinity}
+              date={fromLog?.date ?? ''}
+              noData={!fromLog}
+            />
+
+            <ProjectionRow
+              label="From weight trend"
+              sub={allWeightEntries.length >= 4 ? `Based on last ${Math.min(allWeightEntries.length, 30)} weigh-ins` : `Need 4+ weigh-ins (have ${allWeightEntries.length})`}
+              rate={fromTrend?.rate ?? null}
+              weeks={fromTrend?.weeks ?? Infinity}
+              date={fromTrend?.date ?? ''}
+              noData={!fromTrend && allWeightEntries.length < 4}
+            />
           </Card>
         );
       })()}

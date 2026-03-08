@@ -22,6 +22,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Health Connect: required for Play Store health data permissions rationale -->
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+
+            <!-- Health Connect: declare which health permissions this app uses -->
+            <meta-data
+                android:name="health_permissions"
+                android:resource="@xml/health_permissions" />
+
         </activity>
 
         <provider
@@ -35,6 +45,14 @@
         </provider>
     </application>
 
+    <!-- Health Connect: allow querying the Health Connect app package -->
+    <queries>
+        <package android:name="com.google.android.apps.healthdata" />
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+        </intent>
+    </queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -42,4 +60,6 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <!-- POST_NOTIFICATIONS required on Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Health Connect: steps -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
 </manifest>
