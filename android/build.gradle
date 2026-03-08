@@ -24,6 +24,18 @@ allprojects {
     }
 }
 
+// capacitor-health-connect uses Kotlin 1.8.20 which doesn't support JVM 21.
+// Force JVM 17 target for all Kotlin compile tasks across subprojects.
+subprojects {
+    afterEvaluate {
+        tasks.matching { it.name.contains('compileDebugKotlin') || it.name.contains('compileReleaseKotlin') }.configureEach {
+            if (it.hasProperty('kotlinOptions')) {
+                it.kotlinOptions.jvmTarget = "17"
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
