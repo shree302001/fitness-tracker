@@ -187,7 +187,7 @@ export function ActivityPage() {
               />
               <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip
-                formatter={(v: number) => [v.toLocaleString(), 'Steps']}
+                formatter={(v) => [Number(v).toLocaleString(), 'Steps']}
                 labelFormatter={(d) => new Date(d + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
                 contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
               />
@@ -303,7 +303,7 @@ export function ActivityPage() {
                 tickLine={false}
               />
               <Tooltip
-                formatter={(v: number) => [fmtDuration(v), 'Sleep']}
+                formatter={(v) => [fmtDuration(Number(v)), 'Sleep']}
                 contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }}
               />
               <ReferenceLine y={480} stroke="#60a5fa" strokeDasharray="3 3" strokeOpacity={0.4} />
